@@ -283,13 +283,13 @@ StartHttpService(nvidia::inferenceserver::InferenceServer* server)
 }
 
 std::unique_ptr<nvidia::inferenceserver::GRPCServer>
-StartMultipleHttpService(nvidia::inferenceserver::InferenceServer* server, std::string endpoint_name)
+StartMultipleHttpService(nvidia::inferenceserver::InferenceServer* server, std::string endpoint_name, int32_t endpoint_port)
 {
   std::unique_ptr<nvidia::inferenceserver::GRPCServer> service;
   // TODO: Write CreateUniqueEndpointPorts in grpc_server.cc
   nvidia::inferenceserver::Status status =
       nvidia::inferenceserver::GRPCServer::CreateUniqueEndpointPorts(
-          server, grpc_endpoint_port, grpc_thread_cnt_, &service);
+          server, endpoint_name, endpoint_port, grpc_thread_cnt_, &service);
   if (status.IsOk()) {
     status = service->Start();
   }
@@ -302,13 +302,13 @@ StartMultipleHttpService(nvidia::inferenceserver::InferenceServer* server, std::
 }
 
 std::unique_ptr<nvidia::inferenceserver::HTTPServer>
-StartMultipleGrpcService(nvidia::inferenceserver::InferenceServer* server, std::string endpoint_name)
+StartMultipleGrpcService(nvidia::inferenceserver::InferenceServer* server, std::string endpoint_name, int32_t endpoint_port)
 {
   std::unique_ptr<nvidia::inferenceserver::HTTPServer> service;
   // TODO: Write CreateUniqueEndpointPorts in http_server.cc
   nvidia::inferenceserver::Status status =
       nvidia::inferenceserver::HTTPServer::CreateUniqueEndpointPorts(
-          server, http_endpoint_port, http_thread_cnt_, &service);
+          server, endpoint_name, endpoint_port, http_thread_cnt_, &service);
   if (status.IsOk()) {
     status = service->Start();
   }
@@ -348,7 +348,7 @@ StartEndpoints(nvidia::inferenceserver::InferenceServer* server)
                  << " for gRPC "<<endpoint_names[i]<<" requests";
 
         // Fix for grpc api ports
-        grpc_endpoint_services_[i] = StartMultipleGrpcService(server, endpoint_names[i]);
+        grpc_endpoint_services_[i] = StartMultipleGrpcService(server, endpoint_names[i], endpoint_ports[i]);
         if (grpc_endpoint_services_[i] == nullptr) {
           LOG_ERROR << "Failed to start gRPC "<<endpoint_names[i]<<" service";
           return false;
@@ -381,7 +381,7 @@ StartEndpoints(nvidia::inferenceserver::InferenceServer* server)
                  << " for HTTP "<<endpoint_names[i]<<" requests";
 
         // Fix for http api ports
-        http_endpoint_services_[i] = StartMultipleHttpService(server, endpoint_names[i]);
+        http_endpoint_services_[i] = StartMultipleHttpService(server, endpoint_names[i], endpoint_ports[i]);
         if (http_endpoint_services_[i] == nullptr) {
           LOG_ERROR << "Failed to start HTTP "<<endpoint_names[i]<<" service";
           return false;
