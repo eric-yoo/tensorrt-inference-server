@@ -40,6 +40,10 @@ class GRPCServer : private nvrpc::Server {
   static Status Create(
       InferenceServer* server, uint16_t port,
       std::unique_ptr<GRPCServer>* grpc_server);
+ public:
+  static Status CreateUniqueEndpointPorts(
+      InferenceServer* server, std::string endpoint_name, uint16_t port,
+      std::unique_ptr<GRPCServer>* grpc_server);
   Status Start();
   Status Stop();
 

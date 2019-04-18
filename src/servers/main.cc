@@ -283,13 +283,12 @@ StartHttpService(nvidia::inferenceserver::InferenceServer* server)
 }
 
 std::unique_ptr<nvidia::inferenceserver::GRPCServer>
-StartMultipleHttpService(nvidia::inferenceserver::InferenceServer* server, std::string endpoint_name, int32_t endpoint_port)
+StartMultipleGrpcService(nvidia::inferenceserver::InferenceServer* server, std::string endpoint_name, int32_t endpoint_port)
 {
   std::unique_ptr<nvidia::inferenceserver::GRPCServer> service;
   // TODO: Write CreateUniqueEndpointPorts in grpc_server.cc
   nvidia::inferenceserver::Status status =
-      nvidia::inferenceserver::GRPCServer::CreateUniqueEndpointPorts(
-          server, endpoint_name, endpoint_port, grpc_thread_cnt_, &service);
+      nvidia::inferenceserver::GRPCServer::CreateUniqueEndpointPorts(server, endpoint_name, endpoint_port, &service);
   if (status.IsOk()) {
     status = service->Start();
   }
@@ -302,7 +301,7 @@ StartMultipleHttpService(nvidia::inferenceserver::InferenceServer* server, std::
 }
 
 std::unique_ptr<nvidia::inferenceserver::HTTPServer>
-StartMultipleGrpcService(nvidia::inferenceserver::InferenceServer* server, std::string endpoint_name, int32_t endpoint_port)
+StartMultipleHttpService(nvidia::inferenceserver::InferenceServer* server, std::string endpoint_name, int32_t endpoint_port)
 {
   std::unique_ptr<nvidia::inferenceserver::HTTPServer> service;
   // TODO: Write CreateUniqueEndpointPorts in http_server.cc
@@ -340,8 +339,8 @@ StartEndpoints(nvidia::inferenceserver::InferenceServer* server)
   }
   else {
     // start the 4 GRPC
-    std::string endpoint_names[4] = {"Status", "Health", "Profile", "Infer"};
-    std::string endpoint_ports[4] = {grpc_status_port_, grpc_health_port_, grpc_profile_port_, grpc_infer_port_};
+    std::string endpoint_names[4] = {"status", "health", "profile", "infer"};
+    int32_t endpoint_ports[4] = {grpc_status_port_, grpc_health_port_, grpc_profile_port_, grpc_infer_port_};
     for (size_t i = 0; i < 4; i++){
       if (endpoint_ports[i] != -1) {
         LOG_INFO << " localhost:" << std::to_string(endpoint_ports[i])
@@ -373,8 +372,8 @@ StartEndpoints(nvidia::inferenceserver::InferenceServer* server)
   }
   else {
     // start the 4 HTTP servers
-    std::string endpoint_names[4] = {"Status", "Health", "Profile", "Infer"};
-    std::string endpoint_ports[4] = {http_status_port_, http_health_port_, http_profile_port_, http_infer_port_};
+    std::string endpoint_names[4] = {"status", "health", "profile", "infer"};
+    int32_t endpoint_ports[4] = {http_status_port_, http_health_port_, http_profile_port_, http_infer_port_};
     for (size_t i = 0; i < 4; i++){
       if (endpoint_ports[i] != -1) {
         LOG_INFO << " localhost:" << std::to_string(endpoint_ports[i])
