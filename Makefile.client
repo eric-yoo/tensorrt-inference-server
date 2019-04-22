@@ -146,7 +146,8 @@ grpc: $(LIBGRPCDIR)/libgrpc_indicator
 
 $(LIBGRPCDIR)/libgrpc_indicator:
 	mkdir -p $(LIBGRPCDIR)
-	git clone -b $(shell curl -L https://grpc.io/release) \
+  # temporarily set to 1.19 due to build problems with 1.20
+	git clone -b v1.19.0 \
     https://github.com/grpc/grpc $(LIBGRPCDIR)/grpc
 	cd $(LIBGRPCDIR)/grpc && \
     git submodule update --checkout --init && \
