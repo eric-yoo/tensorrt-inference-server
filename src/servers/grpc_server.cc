@@ -256,10 +256,7 @@ GRPCServer::Create(
     std::unique_ptr<GRPCServer>* grpc_server)
 {
   g_Resources = std::make_shared<AsyncResources>(
-      server, /* InferenceServer*, */
-      1,      /* infer threads */
-      1       /* mgmt threads */
-  );
+      server, 1, /* infer threads */ 1 /* mgmt threads */);
 
   LOG_INFO << "Building nvrpc server";
   const std::string addr = "0.0.0.0:" + std::to_string(port);
@@ -296,8 +293,8 @@ GRPCServer::Create(
 
 Status
 GRPCServer::CreateUniqueEndpointPorts(
-    InferenceServer* server, std::string* endpoint_names,
-    int32_t* endpoint_ports, std::unique_ptr<GRPCServer> grpc_servers[])
+    InferenceServer* server, std::vector<std::string> endpoint_names,
+    std::vector<int32_t> endpoint_ports, std::vector<std::unique_ptr<GRPCServer>>* grpc_servers[])
 {
   // Group by Port numbers
   std::map<int32_t, std::vector<std::string>> port_map;
@@ -313,10 +310,7 @@ GRPCServer::CreateUniqueEndpointPorts(
     i = 0;
     for (auto const& ep_map : port_map) {
       g_Resources = std::make_shared<AsyncResources>(
-          server, /* InferenceServer*, */
-          1,      /* infer threads */
-          1       /* mgmt threads */
-      );
+          server, 1, /* infer threads */ 1 /* mgmt threads */);
 
       const std::string addr = "0.0.0.0:" + std::to_string(ep_map.first);
       (&grpc_servers)[i]->reset(new GRPCServer(addr));
@@ -365,7 +359,7 @@ GRPCServer::CreateUniqueEndpointPorts(
     }
   } else {
     return Status(
-        RequestStatusCode::INVALID_ARG, "must specify ports if grpc-port -1");
+        RequestStatusCode::INVALID_ARG, "must specify valid ports");
   }
   return Status::Success;
 }

@@ -36,15 +36,15 @@ class RequestStatus;
 class ServerStatus;
 
 class GRPCServer : private nvrpc::Server {
- public:
-  static Status Create(
-      InferenceServer* server, int32_t port,
-      std::unique_ptr<GRPCServer>* grpc_server);
+ // public:
+ //  static Status Create(
+ //      InferenceServer* server, int32_t port,
+ //      std::unique_ptr<GRPCServer>* grpc_server);
 
  public:
   static Status CreateUniqueEndpointPorts(
-      InferenceServer* server, std::string* endpoint_names,
-      int32_t* endpoint_ports, std::unique_ptr<GRPCServer> grpc_servers[]);
+      InferenceServer* server, std::vector<std::string> endpoint_names,
+      std::vector<int32_t> endpoint_ports, std::vector<std::unique_ptr<GRPCServer>>* grpc_servers[]);
 
   Status Start();
   Status Stop();

@@ -564,22 +564,22 @@ HTTPServerImpl::InferRequest::FinalizeResponse()
              : EVHTP_RES_BADREQ;
 }
 
-Status
-HTTPServer::Create(
-    InferenceServer* server, int32_t port, int thread_cnt,
-    std::unique_ptr<HTTPServer>* http_server)
-{
-  const char* eps[] = {"status", "health", "profile", "infer"};
-  std::vector<std::string> all_eps(eps, eps + 4);
-  http_server->reset(new HTTPServerImpl(server, all_eps, port, thread_cnt));
-  return Status::Success;
-}
+// Status
+// HTTPServer::Create(
+//     InferenceServer* server, int32_t port, int thread_cnt,
+//     std::unique_ptr<HTTPServer>* http_server)
+// {
+//   const char* eps[] = {"status", "health", "profile", "infer"};
+//   std::vector<std::string> all_eps(eps, eps + 4);
+//   http_server->reset(new HTTPServerImpl(server, all_eps, port, thread_cnt));
+//   return Status::Success;
+// }
 
 Status
 HTTPServer::CreateUniqueEndpointPorts(
-    InferenceServer* server, std::string* endpoint_names,
-    int32_t* endpoint_ports, int thread_cnt,
-    std::unique_ptr<HTTPServer> http_servers[])
+    InferenceServer* server, std::vector<std::string> endpoint_names,
+    std::vector<int32_t> endpoint_ports, int thread_cnt,
+    std::vector<std::unique_ptr<HTTPServer>>* http_servers[])
 {
   // Group by Port numbers
   std::map<int32_t, std::vector<std::string>> port_map;

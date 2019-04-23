@@ -32,16 +32,16 @@ namespace nvidia { namespace inferenceserver {
 class InferenceServer;
 
 class HTTPServer {
- public:
-  static Status Create(
-      InferenceServer* server, int32_t port, int thread_cnt,
-      std::unique_ptr<HTTPServer>* http_server);
+ // public:
+ //  static Status Create(
+ //      InferenceServer* server, int32_t port, int thread_cnt,
+ //      std::unique_ptr<HTTPServer>* http_server);
 
  public:
   static Status CreateUniqueEndpointPorts(
-      InferenceServer* server, std::string* endpoint_names,
-      int32_t* endpoint_ports, int thread_cnt,
-      std::unique_ptr<HTTPServer> http_servers[]);
+      InferenceServer* server, std::vector<std::string> endpoint_names,
+      std::vector<int32_t> endpoint_ports, int thread_cnt,
+      std::vector<std::unique_ptr<HTTPServer>>* http_servers[]);
 
   virtual Status Start() = 0;
   virtual Status Stop() = 0;
