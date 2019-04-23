@@ -66,9 +66,9 @@ constexpr size_t unique_service_endpoint_count_ = 4;
 std::unique_ptr<nvidia::inferenceserver::GRPCServer> grpc_service_;
 std::unique_ptr<nvidia::inferenceserver::HTTPServer> http_service_;
 std::unique_ptr<nvidia::inferenceserver::GRPCServer>
-    grpc_endpoint_services_[unique_service_endpoint_count_];
+    grpc_endpoint_services_[unique_service_endpoint_count_] = nullptr;
 std::unique_ptr<nvidia::inferenceserver::HTTPServer>
-    http_endpoint_services_[unique_service_endpoint_count_];
+    http_endpoint_services_[unique_service_endpoint_count_]  = nullptr;
 
 // The metrics service
 std::unique_ptr<prometheus::Exposer> exposer_;
@@ -299,11 +299,19 @@ StartMultipleGrpcService(
       nvidia::inferenceserver::GRPCServer::CreateUniqueEndpointPorts(
           server, endpoint_names, endpoint_ports, grpc_endpoint_services_);
   if (status.IsOk()) {
-    status = grpc_endpoint_services_[0]->Start();
+    for (size_t i=0;i<unique_service_endpoint_count_;i++) {
+      if (grpc_endpoint_services_[i] != nullptr) {
+        status = grpc_endpoint_services_[i]->Start();
+      }
+    }
   }
 
   if (!status.IsOk()) {
-    grpc_endpoint_services_[0].reset();
+    for (size_t i=0;i<unique_service_endpoint_count_;i++) {
+      if (grpc_endpoint_services_[i] != nullptr) {
+        grpc_endpoint_services_[i].reset();
+      }
+    }
   }
 
   return std::move(grpc_endpoint_services_[0]);
@@ -320,11 +328,19 @@ StartMultipleHttpService(
           server, endpoint_names, endpoint_ports, http_thread_cnt_,
           http_endpoint_services_);
   if (status.IsOk()) {
-    status = http_endpoint_services_[0]->Start();
+    for (size_t i=0;i<unique_service_endpoint_count_;i++) {
+      if (http_endpoint_services_[i] != nullptr) {
+        status = http_endpoint_services_[i]->Start();
+      }
+    }
   }
 
   if (!status.IsOk()) {
-    http_endpoint_services_[0].reset();
+    for (size_t i=0;i<unique_service_endpoint_count_;i++) {
+      if (http_endpoint_services_[i] != nullptr) {
+        http_endpoint_services_[i].reset();
+      }
+    }
   }
 
   return std::move(http_endpoint_services_[0]);
@@ -721,9 +737,18 @@ main(int argc, char** argv)
   if (grpc_service_) {
     grpc_service_->Stop();
   }
-
+  for (size_t i=0;i<unique_service_endpoint_count_;i++) {
+    if (grpc_endpoint_services_[i]) {
+      grpc_endpoint_services_[i]->Stop();
+    }
+  }
   if (http_service_ != nullptr) {
     http_service_->Stop();
+  }
+  for (size_t i=0;i<unique_service_endpoint_count_;i++) {
+    if (http_endpoint_services_[i] != nullptr) {
+      http_endpoint_services_[i]->Stop();
+    }
   }
 
   return (stop_status) ? 0 : 1;
