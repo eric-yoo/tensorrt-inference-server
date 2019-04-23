@@ -26,6 +26,7 @@
 
 #include "src/servers/grpc_server.h"
 
+#include <map>
 #include "grpc++/security/server_credentials.h"
 #include "grpc++/server.h"
 #include "grpc++/server_builder.h"
@@ -50,6 +51,8 @@ using nvrpc::BidirectionalStreamingLifeCycle;
 using nvrpc::Context;
 using nvrpc::LifeCycleUnary;
 using nvrpc::ThreadPool;
+
+constexpr size_t service_endpoint_count_ = 4;
 
 namespace nvidia { namespace inferenceserver {
 namespace {
@@ -249,14 +252,13 @@ GRPCServer::~GRPCServer()
 
 Status
 GRPCServer::Create(
-    InferenceServer* server, uint16_t port,
+    InferenceServer* server, int32_t port,
     std::unique_ptr<GRPCServer>* grpc_server)
 {
-  // DLIS-162 - provide global defaults and cli overridable options
   g_Resources = std::make_shared<AsyncResources>(
-      server,  // InferenceServer*,
-      1,       // infer threads
-      1        // mgmt threads
+      server, /* InferenceServer*, */
+      1,      /* infer threads */
+      1       /* mgmt threads */
   );
 
   LOG_INFO << "Building nvrpc server";
@@ -294,54 +296,77 @@ GRPCServer::Create(
 
 Status
 GRPCServer::CreateUniqueEndpointPorts(
-    InferenceServer* server, std::string endpoint_name, uint16_t port,
-    std::unique_ptr<GRPCServer>* grpc_server)
+    InferenceServer* server, std::string* endpoint_names,
+    int32_t* endpoint_ports, std::unique_ptr<GRPCServer> grpc_servers[])
 {
-  // DLIS-162 - provide global defaults and cli overridable options
-  g_Resources = std::make_shared<AsyncResources>(
-      server,  // InferenceServer*,
-      1,       // infer threads
-      1        // mgmt threads
-  );
-
-  LOG_INFO << "Building nvrpc server";
-  const std::string addr = "0.0.0.0:" + std::to_string(port);
-  grpc_server->reset(new GRPCServer(addr));
-
-  (*grpc_server)->GetBuilder().SetMaxMessageSize(MAX_GRPC_MESSAGE_SIZE);
-
-  LOG_INFO << "Register TensorRT GRPCService";
-  auto inferenceService = (*grpc_server)->RegisterAsyncService<GRPCService>();
-
-  if (endpoint_name == "infer"){
-    LOG_INFO << "Register Infer RPC";
-    (*grpc_server)->rpcInfer_ = inferenceService->RegisterRPC<InferContext>(
-        &GRPCService::AsyncService::RequestInfer);
-
-    LOG_INFO << "Register StreamInfer RPC";
-    (*grpc_server)->rpcStreamInfer_ =
-        inferenceService->RegisterRPC<StreamInferContext>(
-            &GRPCService::AsyncService::RequestStreamInfer);
+  // Group by Port numbers
+  std::map<int32_t, std::vector<std::string>> port_map;
+  size_t i;
+  for (i = 0; i < service_endpoint_count_; i++) {
+    if (endpoint_ports[i] != -1) {
+      port_map[endpoint_ports[i]].push_back(endpoint_names[i]);
+    }
   }
 
-  if (endpoint_name == "status"){
-    LOG_INFO << "Register Status RPC";
-    (*grpc_server)->rpcStatus_ = inferenceService->RegisterRPC<StatusContext>(
-        &GRPCService::AsyncService::RequestStatus);
-  }
+  // launch on ports
+  if (!port_map.empty()) {
+    i = 0;
+    for (auto const& ep_map : port_map) {
+      g_Resources = std::make_shared<AsyncResources>(
+          server, /* InferenceServer*, */
+          1,      /* infer threads */
+          1       /* mgmt threads */
+      );
 
-  if (endpoint_name == "profile"){
-    LOG_INFO << "Register Profile RPC";
-    (*grpc_server)->rpcProfile_ = inferenceService->RegisterRPC<ProfileContext>(
-        &GRPCService::AsyncService::RequestProfile);
-  }
+      const std::string addr = "0.0.0.0:" + std::to_string(ep_map.first);
+      (&grpc_servers)[i]->reset(new GRPCServer(addr));
 
-  if (endpoint_name == "health"){
-    LOG_INFO << "Register Health RPC";
-    (*grpc_server)->rpcHealth_ = inferenceService->RegisterRPC<HealthContext>(
-        &GRPCService::AsyncService::RequestHealth);
-  }
+      (grpc_servers[i])->GetBuilder().SetMaxMessageSize(MAX_GRPC_MESSAGE_SIZE);
 
+      LOG_INFO << "Register TensorRT GRPCService";
+      auto inferenceService =
+          (grpc_servers[i])->RegisterAsyncService<GRPCService>();
+
+      for (auto ep_name : ep_map.second) {
+        if (ep_name == "infer") {
+          LOG_INFO << "Register Infer RPC";
+          (grpc_servers[i])->rpcInfer_ =
+              inferenceService->RegisterRPC<InferContext>(
+                  &GRPCService::AsyncService::RequestInfer);
+
+          LOG_INFO << "Register StreamInfer RPC";
+          (grpc_servers[i])->rpcStreamInfer_ =
+              inferenceService->RegisterRPC<StreamInferContext>(
+                  &GRPCService::AsyncService::RequestStreamInfer);
+        }
+
+        if (ep_name == "status") {
+          LOG_INFO << "Register Status RPC";
+          (grpc_servers[i])->rpcStatus_ =
+              inferenceService->RegisterRPC<StatusContext>(
+                  &GRPCService::AsyncService::RequestStatus);
+        }
+
+        if (ep_name == "profile") {
+          LOG_INFO << "Register Profile RPC";
+          (grpc_servers[i])->rpcProfile_ =
+              inferenceService->RegisterRPC<ProfileContext>(
+                  &GRPCService::AsyncService::RequestProfile);
+        }
+
+        if (ep_name == "health") {
+          LOG_INFO << "Register Health RPC";
+          (grpc_servers[i])->rpcHealth_ =
+              inferenceService->RegisterRPC<HealthContext>(
+                  &GRPCService::AsyncService::RequestHealth);
+        }
+      }
+      i++;
+    }
+  } else {
+    return Status(
+        RequestStatusCode::INVALID_ARG, "must specify ports if grpc-port -1");
+  }
   return Status::Success;
 }
 
