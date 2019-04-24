@@ -344,10 +344,9 @@ HTTPServerImpl::HandleInfer(evhtp_request_t* req, const std::string& infer_uri)
         req->headers_out,
         evhtp_header_new("Content-Type", "application/octet-stream", 1, 1));
 
+    // if status from InferHelper is non-success don't return success
     evhtp_send_reply(
-        req, (request_status.code() == RequestStatusCode::SUCCESS)
-                 ? EVHTP_RES_OK
-                 : EVHTP_RES_BADREQ);
+        req, EVHTP_RES_BADREQ);
   }
 }
 
