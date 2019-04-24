@@ -65,8 +65,10 @@ constexpr size_t unique_service_endpoint_count_ = 4;
 // The HTTP and GRPC services
 // std::unique_ptr<nvidia::inferenceserver::GRPCServer> grpc_service_;
 // std::unique_ptr<nvidia::inferenceserver::HTTPServer> http_service_;
-std::vector<std::unque_ptr<nvidia::inferenceserver::GRPCServer>> grpc_endpoint_services_(unique_service_endpoint_count_,nullptr);
-std::vector<std::unque_ptr<nvidia::inferenceserver::HTTPServer>> http_endpoint_services_(unique_service_endpoint_count_,nullptr);
+std::vector<std::unique_ptr<nvidia::inferenceserver::GRPCServer>>
+    grpc_endpoint_services_;  //(unique_service_endpoint_count_, nullptr);
+std::vector<std::unique_ptr<nvidia::inferenceserver::HTTPServer>>
+    http_endpoint_services_;  //(unique_service_endpoint_count_, nullptr);
 
 // The metrics service
 std::unique_ptr<prometheus::Exposer> exposer_;
@@ -257,7 +259,8 @@ SignalHandler(int signum)
 // {
 //   std::unique_ptr<nvidia::inferenceserver::GRPCServer> service;
 //   nvidia::inferenceserver::Status status =
-//       nvidia::inferenceserver::GRPCServer::Create(server, grpc_port_, &service);
+//       nvidia::inferenceserver::GRPCServer::Create(server, grpc_port_,
+//       &service);
 //   if (status.IsOk()) {
 //     status = service->Start();
 //   }
@@ -290,14 +293,15 @@ SignalHandler(int signum)
 std::unique_ptr<nvidia::inferenceserver::GRPCServer>
 StartMultipleGrpcService(
     nvidia::inferenceserver::InferenceServer* server,
-    std::string* endpoint_names, int32_t* endpoint_ports)
+    std::vector<std::string> endpoint_names,
+    std::vector<int32_t> endpoint_ports)
 {
   // std::unique_ptr<nvidia::inferenceserver::GRPCServer> service;
   nvidia::inferenceserver::Status status =
       nvidia::inferenceserver::GRPCServer::CreateUniqueEndpointPorts(
           server, endpoint_names, endpoint_ports, &grpc_endpoint_services_);
   if (status.IsOk()) {
-    for (auto grpc_eps : grpc_endpoint_services_) {
+    for (auto&& grpc_eps : grpc_endpoint_services_) {
       if (grpc_eps != nullptr) {
         status = grpc_eps->Start();
       }
@@ -305,7 +309,7 @@ StartMultipleGrpcService(
   }
 
   if (!status.IsOk()) {
-    for (auto grpc_eps : grpc_endpoint_services_) {
+    for (auto& grpc_eps : grpc_endpoint_services_) {
       if (grpc_eps != nullptr) {
         grpc_eps.reset();
       }
@@ -318,14 +322,15 @@ StartMultipleGrpcService(
 std::unique_ptr<nvidia::inferenceserver::HTTPServer>
 StartMultipleHttpService(
     nvidia::inferenceserver::InferenceServer* server,
-    std::string* endpoint_names, int32_t* endpoint_ports)
+    std::vector<std::string> endpoint_names,
+    std::vector<int32_t> endpoint_ports)
 {
   nvidia::inferenceserver::Status status =
       nvidia::inferenceserver::HTTPServer::CreateUniqueEndpointPorts(
           server, endpoint_names, endpoint_ports, http_thread_cnt_,
           &http_endpoint_services_);
   if (status.IsOk()) {
-    for (auto http_eps : http_endpoint_services_) {
+    for (auto& http_eps : http_endpoint_services_) {
       if (http_eps != nullptr) {
         status = http_eps->Start();
       }
@@ -333,7 +338,7 @@ StartMultipleHttpService(
   }
 
   if (!status.IsOk()) {
-    for (auto http_eps : http_endpoint_services_) {
+    for (auto& http_eps : http_endpoint_services_) {
       if (http_eps != nullptr) {
         http_eps.reset();
       }
@@ -350,8 +355,11 @@ StartEndpoints(nvidia::inferenceserver::InferenceServer* server)
 
   // Enable gRPC endpoints if requested...
   if (allow_grpc) {
-    std::vector<std::string> endpoint_names = {"status", "health", "profile", "infer"};
-    std::vector<int32_t> endpoint_ports = {grpc_status_port_, grpc_health_port_, grpc_profile_port_, grpc_infer_port_};
+    std::vector<std::string> endpoint_names = {"status", "health", "profile",
+                                               "infer"};
+    std::vector<int32_t> endpoint_ports = {grpc_status_port_, grpc_health_port_,
+                                           grpc_profile_port_,
+                                           grpc_infer_port_};
 
     grpc_endpoint_services_[0] =
         StartMultipleGrpcService(server, endpoint_names, endpoint_ports);
@@ -363,8 +371,11 @@ StartEndpoints(nvidia::inferenceserver::InferenceServer* server)
 
   // Enable HTTP endpoints if requested...
   if (allow_http) {
-    std::vector<std::string> endpoint_names = {"status", "health", "profile", "infer"};
-    std::vector<int32_t> endpoint_ports = {http_status_port_, http_health_port_, http_profile_port_, http_infer_port_};
+    std::vector<std::string> endpoint_names = {"status", "health", "profile",
+                                               "infer"};
+    std::vector<int32_t> endpoint_ports = {http_status_port_, http_health_port_,
+                                           http_profile_port_,
+                                           http_infer_port_};
 
     http_endpoint_services_[0] =
         StartMultipleHttpService(server, endpoint_names, endpoint_ports);
@@ -722,7 +733,7 @@ main(int argc, char** argv)
   // if (grpc_service_) {
   //   grpc_service_->Stop();
   // }
-  for (auto grpc_eps : grpc_endpoint_services_) {
+  for (auto& grpc_eps : grpc_endpoint_services_) {
     if (grpc_eps) {
       grpc_eps->Stop();
     }
@@ -730,7 +741,7 @@ main(int argc, char** argv)
   // if (http_service_ != nullptr) {
   //   http_service_->Stop();
   // }
-  for (auto http_eps : http_endpoint_services_) {
+  for (auto& http_eps : http_endpoint_services_) {
     if (http_eps != nullptr) {
       http_eps->Stop();
     }

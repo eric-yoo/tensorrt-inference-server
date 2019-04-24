@@ -250,51 +250,54 @@ GRPCServer::~GRPCServer()
   Stop();
 }
 
-Status
-GRPCServer::Create(
-    InferenceServer* server, int32_t port,
-    std::unique_ptr<GRPCServer>* grpc_server)
-{
-  g_Resources = std::make_shared<AsyncResources>(
-      server, 1, /* infer threads */ 1 /* mgmt threads */);
-
-  LOG_INFO << "Building nvrpc server";
-  const std::string addr = "0.0.0.0:" + std::to_string(port);
-  grpc_server->reset(new GRPCServer(addr));
-
-  (*grpc_server)->GetBuilder().SetMaxMessageSize(MAX_GRPC_MESSAGE_SIZE);
-
-  LOG_INFO << "Register TensorRT GRPCService";
-  auto inferenceService = (*grpc_server)->RegisterAsyncService<GRPCService>();
-
-  LOG_INFO << "Register Infer RPC";
-  (*grpc_server)->rpcInfer_ = inferenceService->RegisterRPC<InferContext>(
-      &GRPCService::AsyncService::RequestInfer);
-
-  LOG_INFO << "Register StreamInfer RPC";
-  (*grpc_server)->rpcStreamInfer_ =
-      inferenceService->RegisterRPC<StreamInferContext>(
-          &GRPCService::AsyncService::RequestStreamInfer);
-
-  LOG_INFO << "Register Status RPC";
-  (*grpc_server)->rpcStatus_ = inferenceService->RegisterRPC<StatusContext>(
-      &GRPCService::AsyncService::RequestStatus);
-
-  LOG_INFO << "Register Profile RPC";
-  (*grpc_server)->rpcProfile_ = inferenceService->RegisterRPC<ProfileContext>(
-      &GRPCService::AsyncService::RequestProfile);
-
-  LOG_INFO << "Register Health RPC";
-  (*grpc_server)->rpcHealth_ = inferenceService->RegisterRPC<HealthContext>(
-      &GRPCService::AsyncService::RequestHealth);
-
-  return Status::Success;
-}
+// Status
+// GRPCServer::Create(
+//     InferenceServer* server, int32_t port,
+//     std::unique_ptr<GRPCServer>* grpc_server)
+// {
+//   g_Resources = std::make_shared<AsyncResources>(
+//       server, 1, /* infer threads */ 1 /* mgmt threads */);
+//
+//   LOG_INFO << "Building nvrpc server";
+//   const std::string addr = "0.0.0.0:" + std::to_string(port);
+//   grpc_server->reset(new GRPCServer(addr));
+//
+//   (*grpc_server)->GetBuilder().SetMaxMessageSize(MAX_GRPC_MESSAGE_SIZE);
+//
+//   LOG_INFO << "Register TensorRT GRPCService";
+//   auto inferenceService =
+//   (*grpc_server)->RegisterAsyncService<GRPCService>();
+//
+//   LOG_INFO << "Register Infer RPC";
+//   (*grpc_server)->rpcInfer_ = inferenceService->RegisterRPC<InferContext>(
+//       &GRPCService::AsyncService::RequestInfer);
+//
+//   LOG_INFO << "Register StreamInfer RPC";
+//   (*grpc_server)->rpcStreamInfer_ =
+//       inferenceService->RegisterRPC<StreamInferContext>(
+//           &GRPCService::AsyncService::RequestStreamInfer);
+//
+//   LOG_INFO << "Register Status RPC";
+//   (*grpc_server)->rpcStatus_ = inferenceService->RegisterRPC<StatusContext>(
+//       &GRPCService::AsyncService::RequestStatus);
+//
+//   LOG_INFO << "Register Profile RPC";
+//   (*grpc_server)->rpcProfile_ =
+//   inferenceService->RegisterRPC<ProfileContext>(
+//       &GRPCService::AsyncService::RequestProfile);
+//
+//   LOG_INFO << "Register Health RPC";
+//   (*grpc_server)->rpcHealth_ = inferenceService->RegisterRPC<HealthContext>(
+//       &GRPCService::AsyncService::RequestHealth);
+//
+//   return Status::Success;
+// }
 
 Status
 GRPCServer::CreateUniqueEndpointPorts(
     InferenceServer* server, std::vector<std::string> endpoint_names,
-    std::vector<int32_t> endpoint_ports, std::vector<std::unique_ptr<GRPCServer>>* grpc_servers[])
+    std::vector<int32_t> endpoint_ports,
+    std::vector<std::unique_ptr<GRPCServer>>* grpc_servers)
 {
   // Group by Port numbers
   std::map<int32_t, std::vector<std::string>> port_map;
@@ -313,44 +316,44 @@ GRPCServer::CreateUniqueEndpointPorts(
           server, 1, /* infer threads */ 1 /* mgmt threads */);
 
       const std::string addr = "0.0.0.0:" + std::to_string(ep_map.first);
-      (&grpc_servers)[i]->reset(new GRPCServer(addr));
+      (*grpc_servers)[i].reset(new GRPCServer(addr));
 
-      (grpc_servers[i])->GetBuilder().SetMaxMessageSize(MAX_GRPC_MESSAGE_SIZE);
+      (*grpc_servers)[i]->GetBuilder().SetMaxMessageSize(MAX_GRPC_MESSAGE_SIZE);
 
       LOG_INFO << "Register TensorRT GRPCService";
       auto inferenceService =
-          (grpc_servers[i])->RegisterAsyncService<GRPCService>();
+          (*grpc_servers)[i]->RegisterAsyncService<GRPCService>();
 
       for (auto ep_name : ep_map.second) {
         if (ep_name == "infer") {
           LOG_INFO << "Register Infer RPC";
-          (grpc_servers[i])->rpcInfer_ =
+          (*grpc_servers)[i]->rpcInfer_ =
               inferenceService->RegisterRPC<InferContext>(
                   &GRPCService::AsyncService::RequestInfer);
 
           LOG_INFO << "Register StreamInfer RPC";
-          (grpc_servers[i])->rpcStreamInfer_ =
+          (*grpc_servers)[i]->rpcStreamInfer_ =
               inferenceService->RegisterRPC<StreamInferContext>(
                   &GRPCService::AsyncService::RequestStreamInfer);
         }
 
         if (ep_name == "status") {
           LOG_INFO << "Register Status RPC";
-          (grpc_servers[i])->rpcStatus_ =
+          (*grpc_servers)[i]->rpcStatus_ =
               inferenceService->RegisterRPC<StatusContext>(
                   &GRPCService::AsyncService::RequestStatus);
         }
 
         if (ep_name == "profile") {
           LOG_INFO << "Register Profile RPC";
-          (grpc_servers[i])->rpcProfile_ =
+          (*grpc_servers)[i]->rpcProfile_ =
               inferenceService->RegisterRPC<ProfileContext>(
                   &GRPCService::AsyncService::RequestProfile);
         }
 
         if (ep_name == "health") {
           LOG_INFO << "Register Health RPC";
-          (grpc_servers[i])->rpcHealth_ =
+          (*grpc_servers)[i]->rpcHealth_ =
               inferenceService->RegisterRPC<HealthContext>(
                   &GRPCService::AsyncService::RequestHealth);
         }
@@ -358,8 +361,7 @@ GRPCServer::CreateUniqueEndpointPorts(
       i++;
     }
   } else {
-    return Status(
-        RequestStatusCode::INVALID_ARG, "must specify valid ports");
+    return Status(RequestStatusCode::INVALID_ARG, "must specify valid ports");
   }
   return Status::Success;
 }

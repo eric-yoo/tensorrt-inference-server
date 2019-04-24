@@ -579,7 +579,7 @@ Status
 HTTPServer::CreateUniqueEndpointPorts(
     InferenceServer* server, std::vector<std::string> endpoint_names,
     std::vector<int32_t> endpoint_ports, int thread_cnt,
-    std::vector<std::unique_ptr<HTTPServer>>* http_servers[])
+    std::vector<std::unique_ptr<HTTPServer>>* http_servers)
 {
   // Group by Port numbers
   std::map<int32_t, std::vector<std::string>> port_map;
@@ -594,8 +594,8 @@ HTTPServer::CreateUniqueEndpointPorts(
   if (!port_map.empty()) {
     i = 0;
     for (auto const& ep_map : port_map) {
-      (&http_servers[i])
-          ->reset(new HTTPServerImpl(
+      ((*http_servers)[i])
+          .reset(new HTTPServerImpl(
               server, ep_map.second, ep_map.first, thread_cnt));
       i++;
     }
