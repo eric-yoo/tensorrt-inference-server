@@ -564,19 +564,8 @@ HTTPServerImpl::InferRequest::FinalizeResponse()
              : EVHTP_RES_BADREQ;
 }
 
-// Status
-// HTTPServer::Create(
-//     InferenceServer* server, int32_t port, int thread_cnt,
-//     std::unique_ptr<HTTPServer>* http_server)
-// {
-//   const char* eps[] = {"status", "health", "profile", "infer"};
-//   std::vector<std::string> all_eps(eps, eps + 4);
-//   http_server->reset(new HTTPServerImpl(server, all_eps, port, thread_cnt));
-//   return Status::Success;
-// }
-
 Status
-HTTPServer::CreateUniqueEndpointPorts(
+HTTPServer::Create(
     InferenceServer* server, std::vector<std::string> endpoint_names,
     std::vector<int32_t> endpoint_ports, int thread_cnt,
     std::vector<std::unique_ptr<HTTPServer>>* http_servers)
@@ -594,6 +583,8 @@ HTTPServer::CreateUniqueEndpointPorts(
   if (!port_map.empty()) {
     i = 0;
     for (auto const& ep_map : port_map) {
+      std::string addr = "0.0.0.0:" + std::to_string(ep_map.first);
+      LOG_INFO << "Starting HTTPService at " << addr;
       ((*http_servers)[i])
           .reset(new HTTPServerImpl(
               server, ep_map.second, ep_map.first, thread_cnt));
