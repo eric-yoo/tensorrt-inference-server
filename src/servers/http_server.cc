@@ -567,26 +567,25 @@ HTTPServerImpl::InferRequest::FinalizeResponse()
 Status
 HTTPServer::Create(
     InferenceServer* server,
-    std::map<int32_t, std::vector<std::string>> port_map, int thread_cnt,
+    const std::map<int32_t, std::vector<std::string>>& port_map, int thread_cnt,
     std::vector<std::unique_ptr<HTTPServer>>* http_servers)
 {
-  size_t i = 0;
-
-  if (!port_map.empty()) {
-    for (auto const& ep_map : port_map) {
-      std::string addr = "0.0.0.0:" + std::to_string(ep_map.first);
-      LOG_INFO << "Starting HTTPService at " << addr;
-      ((*http_servers)[i])
-          .reset(new HTTPServerImpl(
-              server, ep_map.second, ep_map.first, thread_cnt));
-      i++;
-    }
-  } else {
+  if (port_map.empty()) {
     return Status(
         RequestStatusCode::INVALID_ARG,
         "HTTP is enabled but none of the service endpoints have a valid port "
         "assignment");
   }
+  (*http_servers).clear();
+  for (auto const& ep_map : port_map) {
+    std::string addr = "0.0.0.0:" + std::to_string(ep_map.first);
+    LOG_INFO << "Starting HTTPService at " << addr;
+    (*http_servers).push_back(nullptr);
+    ((*http_servers).back())
+        .reset(new HTTPServerImpl(
+            server, ep_map.second, ep_map.first, thread_cnt));
+  }
+
   return Status::Success;
 }
 }}  // namespace nvidia::inferenceserver

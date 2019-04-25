@@ -255,7 +255,7 @@ SignalHandler(int signum)
 nvidia::inferenceserver::Status
 StartMultipleGrpcService(
     nvidia::inferenceserver::InferenceServer* server,
-    std::map<int32_t, std::vector<std::string>> port_map)
+    std::map<int32_t, std::vector<std::string>>& port_map)
 {
   nvidia::inferenceserver::Status status =
       nvidia::inferenceserver::GRPCServer::Create(
@@ -282,7 +282,7 @@ StartMultipleGrpcService(
 nvidia::inferenceserver::Status
 StartMultipleHttpService(
     nvidia::inferenceserver::InferenceServer* server,
-    std::map<int32_t, std::vector<std::string>> port_map)
+    std::map<int32_t, std::vector<std::string>>& port_map)
 {
   nvidia::inferenceserver::Status status =
       nvidia::inferenceserver::HTTPServer::Create(
