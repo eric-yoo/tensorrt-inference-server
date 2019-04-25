@@ -42,9 +42,6 @@
 
 namespace nvidia { namespace inferenceserver {
 
-constexpr size_t service_endpoint_count_ = 4;
-
-//
 // Handle HTTP requests
 class HTTPServerImpl : public HTTPServer {
  public:
