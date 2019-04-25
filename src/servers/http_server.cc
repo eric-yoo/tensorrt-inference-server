@@ -566,22 +566,13 @@ HTTPServerImpl::InferRequest::FinalizeResponse()
 
 Status
 HTTPServer::Create(
-    InferenceServer* server, std::vector<std::string> endpoint_names,
-    std::vector<int32_t> endpoint_ports, int thread_cnt,
+    InferenceServer* server,
+    std::map<int32_t, std::vector<std::string>> port_map, int thread_cnt,
     std::vector<std::unique_ptr<HTTPServer>>* http_servers)
 {
-  // Group by Port numbers
-  std::map<int32_t, std::vector<std::string>> port_map;
-  size_t i;
-  for (i = 0; i < service_endpoint_count_; i++) {
-    if (endpoint_ports[i] != -1) {
-      port_map[endpoint_ports[i]].push_back(endpoint_names[i]);
-    }
-  }
+  size_t i = 0;
 
-  // launch on ports
   if (!port_map.empty()) {
-    i = 0;
     for (auto const& ep_map : port_map) {
       std::string addr = "0.0.0.0:" + std::to_string(ep_map.first);
       LOG_INFO << "Starting HTTPService at " << addr;
@@ -592,7 +583,9 @@ HTTPServer::Create(
     }
   } else {
     return Status(
-        RequestStatusCode::INVALID_ARG, "must specify ports if http-port -1");
+        RequestStatusCode::INVALID_ARG,
+        "HTTP is enabled but none of the service endpoints have a valid port "
+        "assignment");
   }
   return Status::Success;
 }

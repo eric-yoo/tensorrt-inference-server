@@ -52,8 +52,6 @@ using nvrpc::Context;
 using nvrpc::LifeCycleUnary;
 using nvrpc::ThreadPool;
 
-constexpr size_t service_endpoint_count_ = 4;
-
 namespace nvidia { namespace inferenceserver {
 namespace {
 class AsyncResources : public nvrpc::Resources {
@@ -252,28 +250,18 @@ GRPCServer::~GRPCServer()
 
 Status
 GRPCServer::Create(
-    InferenceServer* server, std::vector<std::string> endpoint_names,
-    std::vector<int32_t> endpoint_ports,
+    InferenceServer* server,
+    std::map<int32_t, std::vector<std::string>> port_map,
     std::vector<std::unique_ptr<GRPCServer>>* grpc_servers)
 {
-  // Group by Port numbers
-  std::map<int32_t, std::vector<std::string>> port_map;
-  size_t i;
-  for (i = 0; i < service_endpoint_count_; i++) {
-    if (endpoint_ports[i] != -1) {
-      port_map[endpoint_ports[i]].push_back(endpoint_names[i]);
-    }
-  }
-
-  // launch on ports
+  size_t i = 0;
   if (!port_map.empty()) {
-    i = 0;
-    for (auto const& ep_map : port_map) {
-      g_Resources = std::make_shared<AsyncResources>(
-          server, 1, /* infer threads */ 1 /* mgmt threads */);
+    g_Resources = std::make_shared<AsyncResources>(
+        server, 1, /* infer threads */ 1 /* mgmt threads */);
 
+    for (auto const& ep_map : port_map) {
       std::string addr = "0.0.0.0:" + std::to_string(ep_map.first);
-      LOG_INFO << "Starting GRPCService at " << addr;
+      LOG_INFO << "Starting a GRPCService at " << addr;
       (*grpc_servers)[i].reset(new GRPCServer(addr));
 
       (*grpc_servers)[i]->GetBuilder().SetMaxMessageSize(MAX_GRPC_MESSAGE_SIZE);
@@ -319,7 +307,10 @@ GRPCServer::Create(
       i++;
     }
   } else {
-    return Status(RequestStatusCode::INVALID_ARG, "must specify valid ports");
+    return Status(
+        RequestStatusCode::INVALID_ARG,
+        "GRPC is enabled but none of the service endpoints have a valid port "
+        "assignment");
   }
   return Status::Success;
 }

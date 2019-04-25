@@ -34,8 +34,8 @@ class InferenceServer;
 class HTTPServer {
  public:
   static Status Create(
-      InferenceServer* server, std::vector<std::string> endpoint_names,
-      std::vector<int32_t> endpoint_ports, int thread_cnt,
+      InferenceServer* server,
+      std::map<int32_t, std::vector<std::string>> port_map, int thread_cnt,
       std::vector<std::unique_ptr<HTTPServer>>* http_servers);
 
   virtual Status Start() = 0;
