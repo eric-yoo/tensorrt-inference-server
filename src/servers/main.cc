@@ -92,9 +92,10 @@ int32_t grpc_infer_port_ = -1;
 // disabled.
 int32_t metrics_port_ = 8002;
 
-// Should GPU metrics be reported.
 bool allow_http = true;
 bool allow_grpc = true;
+
+// Should GPU metrics be reported.
 bool allow_gpu_metrics_ = false;
 
 // The number of threads to initialize for the HTTP front-end.
